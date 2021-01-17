@@ -343,8 +343,27 @@ def edit_artist(artist_id):
 
 @app.route("/artists/<int:artist_id>/edit", methods=["POST"])
 def edit_artist_submission(artist_id):
-    # TODO: take values from the form submitted, and update existing
-    # artist record with ID <artist_id> using the new attributes
+    if request.method == "POST":
+        try:
+            artist = Artist.query.get(artist_id)
+            attritbutes = [
+                "name",
+                "city",
+                "state",
+                "phone",
+                "facebook_link",
+            ]
+            for attribute in attritbutes:
+                setattr(artist, attribute, request.form[attribute])
+            artist.genres = ",".join(request.form.getlist("genres"))
+            db.session.commit()
+            flash("Artist " + request.form["name"] + " was successfully modified!")
+        except:
+            db.session.rollback()
+            flash("An error occurred. Artist " + request.form["name"] + "could not be modified.")
+            print(sys.exc_info())
+        finally:
+            db.session.close()
 
     return redirect(url_for("show_artist", artist_id=artist_id))
 
@@ -372,8 +391,28 @@ def edit_venue(venue_id):
 
 @app.route("/venues/<int:venue_id>/edit", methods=["POST"])
 def edit_venue_submission(venue_id):
-    # TODO: take values from the form submitted, and update existing
-    # venue record with ID <venue_id> using the new attributes
+    if request.method == "POST":
+        try:
+            venue = Venue.query.get(venue_id)
+            attritbutes = [
+                "name",
+                "city",
+                "state",
+                "address",
+                "phone",
+                "facebook_link",
+            ]
+            for attribute in attritbutes:
+                setattr(venue, attribute, request.form[attribute])
+            venue.genres = ",".join(request.form.getlist("genres"))
+            db.session.commit()
+            flash("Venue " + request.form["name"] + " was successfully modified!")
+        except:
+            db.session.rollback()
+            flash("An error occurred. Venue " + request.form["name"] + "could not be modified.")
+            print(sys.exc_info())
+        finally:
+            db.session.close()
     return redirect(url_for("show_venue", venue_id=venue_id))
 
 

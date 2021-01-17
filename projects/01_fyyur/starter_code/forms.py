@@ -161,10 +161,7 @@ class ArtistForm(Form):
             ("WY", "WY"),
         ],
     )
-    phone = StringField(
-        # TODO implement validation logic for state
-        "phone"
-    )
+    phone = StringField("phone")
     image_link = StringField("image_link")
     genres = SelectMultipleField(
         "genres",
@@ -192,7 +189,6 @@ class ArtistForm(Form):
         ],
     )
     facebook_link = StringField(
-        # TODO implement enum restriction
         "facebook_link",
         validators=[URL()],
     )

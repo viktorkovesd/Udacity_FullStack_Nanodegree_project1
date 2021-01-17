@@ -6,13 +6,14 @@ import json
 import dateutil.parser
 import datetime
 import babel
-from flask import Flask, render_template, request, Response, flash, redirect, url_for
+from flask import Flask, render_template, request, Response, flash, redirect, url_for, jsonify
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 import logging
 from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
+import sys
 
 from flask_migrate import Migrate
 
@@ -34,7 +35,7 @@ migrate = Migrate(app, db)
 class Venue(db.Model):
     __tablename__ = "Venue"
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String, nullable=False)
     city = db.Column(db.String(120), nullable=False)
     state = db.Column(db.String(120), nullable=False)
@@ -52,13 +53,13 @@ class Venue(db.Model):
 class Artist(db.Model):
     __tablename__ = "Artist"
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String, nullable=False)
     city = db.Column(db.String(120))
     state = db.Column(db.String(120))
     phone = db.Column(db.String(120))
     genres = db.Column(db.String(120))
-    image_link = db.Column(db.String(500))
+    image_link = (db.Column(db.String(500)),)
     facebook_link = db.Column(db.String(120))
     website = db.Column(db.String(500))
     seeking_venue = db.Column(db.Boolean, nullable=False, default=False)
@@ -202,25 +203,45 @@ def create_venue_form():
 
 @app.route("/venues/create", methods=["POST"])
 def create_venue_submission():
-    # TODO: insert form data as a new Venue record in the db, instead
-    # TODO: modify data to be the data object returned from db insertion
+    try:
+        venue = Venue(
+            name=request.form["name"],
+            city=request.form["city"],
+            state=request.form["state"],
+            address=request.form["address"],
+            phone=request.form["phone"],
+            facebook_link=request.form["facebook_link"],
+            genres=",".join(request.form.getlist("genres")),
+        )
 
-    # on successful db insert, flash success
-    flash("Venue " + request.form["name"] + " was successfully listed!")
-    # TODO: on unsuccessful db insert, flash an error instead.
-    # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
-    # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
+        db.session.add(venue)
+        db.session.commit()
+        # on successful db insert, flash success
+        flash("Venue " + request.form["name"] + " was successfully listed!")
+    except:
+        print(sys.exc_info())
+        db.session.rollback()
+        flash("An error occurred. Venue " + request.form["name"] + "could not be listed.")
+    finally:
+        db.session.close()
+
     return render_template("pages/home.html")
 
 
 @app.route("/venues/<venue_id>", methods=["DELETE"])
 def delete_venue(venue_id):
-    # TODO: Complete this endpoint for taking a venue_id, and using
-    # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
-
-    # BONUS CHALLENGE: Implement a button to delete a Venue on a Venue Page, have it so that
-    # clicking that button delete it from the db then redirect the user to the homepage
-    return None
+    try:
+        venue = Venue.query.get(venue_id)
+        shows = venue.shows
+        for show in shows:
+            db.session.delete(show)
+        db.session.delete(venue)
+        db.session.commit()
+    except:
+        db.session.rollback()
+    finally:
+        db.session.close()
+    return jsonify({"success": True})
 
 
 #  Artists
@@ -385,10 +406,6 @@ def create_artist_submission():
 
 @app.route("/shows")
 def shows():
-    # displays list of shows at /shows
-    # TODO: replace with real venues data.
-    #       num_shows should be aggregated based on number of upcoming shows per venue.
-
     shows = Show.query.all()
 
     data = []
